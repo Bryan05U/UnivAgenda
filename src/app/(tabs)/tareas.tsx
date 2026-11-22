@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   FlatList,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -12,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Colors } from '@/constants/theme';
+import { loadData, saveData, StorageKeys } from '@/storage/appStorage';
 
 const colors = Colors.light;
 
@@ -20,73 +24,105 @@ type Task = {
   title: string;
   subject: string;
   details: string;
-  status: 'Pendiente' | 'Completada';
+  dueDate: string;
+  dueTime: string;
+  completed: boolean;
 };
+
+type Filter = 'Todas' | 'Pendientes' | 'Completadas';
 
 const initialTasks: Task[] = [
   {
     id: '1',
     title: 'Informe de Biología',
     subject: 'Biología',
-    details: 'Entrega · 24 nov, 10:00',
-    status: 'Pendiente',
+    details: 'Preparar informe de laboratorio.',
+    dueDate: '24/11/2026',
+    dueTime: '10:00',
+    completed: false,
   },
   {
     id: '2',
     title: 'Ejercicios de Álgebra',
     subject: 'Matemáticas',
-    details: 'Entrega · 25 nov, 18:00',
-    status: 'Pendiente',
+    details: 'Resolver ejercicios del capítulo 4.',
+    dueDate: '26/11/2026',
+    dueTime: '08:30',
+    completed: false,
   },
   {
     id: '3',
     title: 'Lectura capítulo 3',
     subject: 'Historia',
-    details: 'Entrega · 27 nov, 12:00',
-    status: 'Completada',
+    details: 'Repasar contenidos para la clase.',
+    dueDate: '27/11/2026',
+    dueTime: '14:00',
+    completed: true,
   },
 ];
 
-type Filter = 'Todas' | 'Pendientes' | 'Completadas';
-
 export default function TasksScreen() {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
-  const [filter, setFilter] = useState<Filter>('Todas');
   const [search, setSearch] = useState('');
-
+  const [filter, setFilter] = useState<Filter>('Todas');
   const [modalVisible, setModalVisible] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
   const [newTitle, setNewTitle] = useState('');
   const [newSubject, setNewSubject] = useState('');
   const [newDetails, setNewDetails] = useState('');
+  const [newDate, setNewDate] = useState('');
+  const [newTime, setNewTime] = useState('');
 
-  const filteredTasks = tasks.filter((task) => {
-    const matchesFilter =
-      filter === 'Todas' ||
-      (filter === 'Pendientes' && task.status === 'Pendiente') ||
-      (filter === 'Completadas' && task.status === 'Completada');
+  useEffect(() => {
+    async function loadTasks() {
+      const storedTasks = await loadData<Task[]>(
+        StorageKeys.tasks,
+        initialTasks,
+      );
 
-    const query = search.toLowerCase().trim();
+      setTasks(storedTasks);
+      setLoaded(true);
+    }
 
-    const matchesSearch =
-      task.title.toLowerCase().includes(query) ||
-      task.subject.toLowerCase().includes(query);
+    loadTasks();
+  }, []);
 
-    return matchesFilter && matchesSearch;
-  });
+  useEffect(() => {
+    if (loaded) {
+      saveData(StorageKeys.tasks, tasks);
+    }
+  }, [tasks, loaded]);
 
   function toggleTask(id: string) {
-    setTasks((currentTasks) =>
-      currentTasks.map((task) =>
+    setTasks((current) =>
+      current.map((task) =>
         task.id === id
-          ? {
-              ...task,
-              status:
-                task.status === 'Pendiente'
-                  ? 'Completada'
-                  : 'Pendiente',
-            }
+          ? { ...task, completed: !task.completed }
           : task,
       ),
+    );
+  }
+
+  function deleteTask(id: string) {
+    Alert.alert(
+      'Eliminar tarea',
+      '¿Estás seguro de que deseas eliminar esta tarea?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: () => {
+            setTasks((current) =>
+              current.filter((task) => task.id !== id),
+            );
+          },
+        },
+      ],
     );
   }
 
@@ -94,12 +130,22 @@ export default function TasksScreen() {
     setNewTitle('');
     setNewSubject('');
     setNewDetails('');
+    setNewDate('');
+    setNewTime('');
     setModalVisible(true);
   }
 
   function addTask() {
-    if (!newTitle.trim() || !newSubject.trim() || !newDetails.trim()) {
-      Alert.alert('Campos incompletos', 'Completa todos los campos para agregar la tarea.');
+    if (
+      !newTitle.trim() ||
+      !newSubject.trim() ||
+      !newDate.trim() ||
+      !newTime.trim()
+    ) {
+      Alert.alert(
+        'Campos incompletos',
+        'Completa el título, asignatura, fecha y hora.',
+      );
       return;
     }
 
@@ -107,20 +153,35 @@ export default function TasksScreen() {
       id: Date.now().toString(),
       title: newTitle.trim(),
       subject: newSubject.trim(),
-      details: `Entrega · ${newDetails.trim()}`,
-      status: 'Pendiente',
+      details: newDetails.trim(),
+      dueDate: newDate.trim(),
+      dueTime: newTime.trim(),
+      completed: false,
     };
 
-    setTasks((currentTasks) => [newTask, ...currentTasks]);
+    setTasks((current) => [...current, newTask]);
     setFilter('Todas');
     setSearch('');
     setModalVisible(false);
-    setNewTitle('');
-    setNewSubject('');
-    setNewDetails('');
 
-    Alert.alert('¡Tarea agregada!', 'Tu nueva tarea ya está en la lista.');
+    Alert.alert('¡Tarea agregada!', 'La tarea se guardó correctamente.');
   }
+
+  const filteredTasks = tasks.filter((task) => {
+    const matchesSearch =
+      task.title.toLowerCase().includes(search.toLowerCase()) ||
+      task.subject.toLowerCase().includes(search.toLowerCase());
+
+    const matchesFilter =
+      filter === 'Todas' ||
+      (filter === 'Pendientes' && !task.completed) ||
+      (filter === 'Completadas' && task.completed);
+
+    return matchesSearch && matchesFilter;
+  });
+
+  const pendingCount = tasks.filter((task) => !task.completed).length;
+  const completedCount = tasks.filter((task) => task.completed).length;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -129,16 +190,29 @@ export default function TasksScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
           <View style={styles.headerContent}>
             <Text style={styles.title}>Mis tareas</Text>
             <Text style={styles.subtitle}>
-              Organiza y controla tus pendientes.
+              Organiza y lleva el seguimiento de tus actividades.
             </Text>
+
+            <View style={styles.summary}>
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryNumber}>{pendingCount}</Text>
+                <Text style={styles.summaryLabel}>Pendientes</Text>
+              </View>
+
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryNumber}>{completedCount}</Text>
+                <Text style={styles.summaryLabel}>Completadas</Text>
+              </View>
+            </View>
 
             <TextInput
               style={styles.search}
-              placeholder="Buscar tarea o asignatura..."
+              placeholder="Buscar tarea..."
               placeholderTextColor={colors.textSecondary}
               value={search}
               onChangeText={setSearch}
@@ -150,18 +224,16 @@ export default function TasksScreen() {
                 (item) => (
                   <Pressable
                     key={item}
-                    onPress={() => setFilter(item)}
                     style={[
                       styles.filterButton,
-                      filter === item && styles.filterActive,
+                      filter === item && styles.filterSelected,
                     ]}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: filter === item }}
+                    onPress={() => setFilter(item)}
                   >
                     <Text
                       style={[
                         styles.filterText,
-                        filter === item && styles.filterTextActive,
+                        filter === item && styles.filterTextSelected,
                       ]}
                     >
                       {item}
@@ -171,49 +243,87 @@ export default function TasksScreen() {
               )}
             </View>
 
-            <Text style={styles.listTitle}>
-              {filter === 'Todas'
-                ? 'Todas las tareas'
-                : filter === 'Pendientes'
-                  ? 'Tareas pendientes'
-                  : 'Tareas completadas'}
-            </Text>
+            <Text style={styles.sectionTitle}>Lista de tareas</Text>
           </View>
         }
         renderItem={({ item }) => (
-          <Pressable
-            onPress={() => toggleTask(item.id)}
-            accessibilityRole="button"
-            accessibilityLabel={`${item.title}, ${item.status}. Cambiar estado`}
-            style={({ pressed }) => [
-              styles.taskCard,
-              pressed && styles.pressed,
-            ]}
-          >
-            <View style={styles.taskContent}>
-              <Text style={styles.taskTitle}>{item.title}</Text>
-              <Text style={styles.taskMetadata}>{item.subject}</Text>
-              <Text style={styles.taskMetadata}>{item.details}</Text>
-            </View>
-
-            <View
-              style={[
-                styles.badge,
-                item.status === 'Pendiente'
-                  ? styles.pendingBadge
-                  : styles.completedBadge,
+          <View style={styles.taskCard}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.taskMain,
+                pressed && styles.pressed,
               ]}
+              onPress={() => toggleTask(item.id)}
+              accessibilityRole="button"
+              accessibilityLabel={`${item.title}. ${item.completed ? 'Completada' : 'Pendiente'}. Pulsa para cambiar el estado.`}
             >
-              <Text
-                style={[
-                  styles.badgeText,
-                  item.status === 'Completada' && styles.completedText,
-                ]}
-              >
-                {item.status}
-              </Text>
-            </View>
-          </Pressable>
+              <View style={styles.taskRow}>
+                <View
+                  style={[
+                    styles.checkCircle,
+                    item.completed && styles.checkCompleted,
+                  ]}
+                >
+                  {item.completed && (
+                    <Text style={styles.checkText}>✓</Text>
+                  )}
+                </View>
+
+                <View style={styles.taskContent}>
+                  <Text
+                    style={[
+                      styles.taskTitle,
+                      item.completed && styles.completedTitle,
+                    ]}
+                  >
+                    {item.title}
+                  </Text>
+
+                  <Text style={styles.taskSubject}>{item.subject}</Text>
+
+                  {item.details ? (
+                    <Text style={styles.taskDetails}>{item.details}</Text>
+                  ) : null}
+
+                  <Text style={styles.taskDate}>
+                    {item.dueDate} · {item.dueTime}
+                  </Text>
+
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      item.completed
+                        ? styles.completedBadge
+                        : styles.pendingBadge,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.statusText,
+                        item.completed
+                          ? styles.completedStatusText
+                          : styles.pendingStatusText,
+                      ]}
+                    >
+                      {item.completed ? 'Completada' : 'Pendiente'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.deleteButton,
+                pressed && styles.pressed,
+              ]}
+              onPress={() => deleteTask(item.id)}
+              accessibilityRole="button"
+              accessibilityLabel={`Eliminar ${item.title}`}
+            >
+              <Text style={styles.deleteButtonText}>Eliminar</Text>
+            </Pressable>
+          </View>
         )}
         ListEmptyComponent={
           <View style={styles.empty}>
@@ -242,60 +352,85 @@ export default function TasksScreen() {
         animationType="slide"
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Nueva tarea</Text>
-            <Text style={styles.modalSubtitle}>
-              Completa los datos de tu actividad.
-            </Text>
-
-            <Text style={styles.label}>Nombre de la tarea</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ej. Trabajo de investigación"
-              placeholderTextColor={colors.textSecondary}
-              value={newTitle}
-              onChangeText={setNewTitle}
-              accessibilityLabel="Nombre de la tarea"
-            />
-
-            <Text style={styles.label}>Asignatura</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ej. Biología"
-              placeholderTextColor={colors.textSecondary}
-              value={newSubject}
-              onChangeText={setNewSubject}
-              accessibilityLabel="Asignatura"
-            />
-
-            <Text style={styles.label}>Fecha y hora de entrega</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ej. 28 nov, 14:00"
-              placeholderTextColor={colors.textSecondary}
-              value={newDetails}
-              onChangeText={setNewDetails}
-              accessibilityLabel="Fecha y hora de entrega"
-            />
-
-            <Pressable
-              style={styles.primaryButton}
-              onPress={addTask}
-              accessibilityRole="button"
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
             >
-              <Text style={styles.primaryButtonText}>Guardar tarea</Text>
-            </Pressable>
+              <Text style={styles.modalTitle}>Nueva tarea</Text>
+              <Text style={styles.modalSubtitle}>
+                Completa los datos de tu actividad.
+              </Text>
 
-            <Pressable
-              style={styles.cancelButton}
-              onPress={() => setModalVisible(false)}
-              accessibilityRole="button"
-            >
-              <Text style={styles.cancelButtonText}>Cancelar</Text>
-            </Pressable>
+              <Text style={styles.inputLabel}>Título</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Ej. Entregar informe"
+                placeholderTextColor={colors.textSecondary}
+                value={newTitle}
+                onChangeText={setNewTitle}
+              />
+
+              <Text style={styles.inputLabel}>Asignatura</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Ej. Biología"
+                placeholderTextColor={colors.textSecondary}
+                value={newSubject}
+                onChangeText={setNewSubject}
+              />
+
+              <Text style={styles.inputLabel}>Detalles</Text>
+              <TextInput
+                style={[styles.input, styles.detailsInput]}
+                placeholder="Descripción (opcional)"
+                placeholderTextColor={colors.textSecondary}
+                value={newDetails}
+                onChangeText={setNewDetails}
+                multiline
+              />
+
+              <Text style={styles.inputLabel}>Fecha de entrega</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="DD/MM/AAAA"
+                placeholderTextColor={colors.textSecondary}
+                value={newDate}
+                onChangeText={setNewDate}
+              />
+
+              <Text style={styles.inputLabel}>Hora</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="HH:MM"
+                placeholderTextColor={colors.textSecondary}
+                value={newTime}
+                onChangeText={setNewTime}
+              />
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.saveButton,
+                  pressed && styles.pressed,
+                ]}
+                onPress={addTask}
+              >
+                <Text style={styles.saveButtonText}>Guardar tarea</Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.cancelButton}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              </Pressable>
+            </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -326,6 +461,30 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: colors.textSecondary,
   },
+  summary: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  summaryCard: {
+    flex: 1,
+    backgroundColor: colors.backgroundElement,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 14,
+    padding: 16,
+    alignItems: 'center',
+    gap: 4,
+  },
+  summaryNumber: {
+    fontFamily: 'FredokaSemiBold',
+    fontSize: 24,
+    color: colors.primary,
+  },
+  summaryLabel: {
+    fontFamily: 'Fredoka',
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
   search: {
     height: 52,
     backgroundColor: colors.backgroundElement,
@@ -343,28 +502,28 @@ const styles = StyleSheet.create({
   },
   filterButton: {
     flex: 1,
-    minHeight: 48,
-    paddingHorizontal: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.backgroundElement,
+    minHeight: 44,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 12,
+    backgroundColor: colors.backgroundElement,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
   },
-  filterActive: {
+  filterSelected: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
   filterText: {
     fontFamily: 'FredokaMedium',
     fontSize: 13,
-    color: colors.text,
+    color: colors.textSecondary,
   },
-  filterTextActive: {
+  filterTextSelected: {
     color: '#FFFFFF',
   },
-  listTitle: {
+  sectionTitle: {
     fontFamily: 'FredokaSemiBold',
     fontSize: 18,
     color: colors.text,
@@ -376,28 +535,70 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 14,
     padding: 16,
-    gap: 12,
     marginBottom: 12,
+    gap: 14,
+  },
+  taskMain: {
+    minHeight: 48,
+  },
+  taskRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  checkCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  checkCompleted: {
+    backgroundColor: colors.success,
+    borderColor: colors.success,
+  },
+  checkText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontFamily: 'FredokaBold',
   },
   taskContent: {
-    gap: 4,
+    flex: 1,
+    gap: 6,
   },
   taskTitle: {
     fontFamily: 'FredokaSemiBold',
     fontSize: 16,
     color: colors.text,
   },
-  taskMetadata: {
+  completedTitle: {
+    textDecorationLine: 'line-through',
+  },
+  taskSubject: {
+    fontFamily: 'FredokaMedium',
+    fontSize: 14,
+    color: colors.primary,
+  },
+  taskDetails: {
     fontFamily: 'Fredoka',
     fontSize: 14,
     lineHeight: 20,
     color: colors.textSecondary,
   },
-  badge: {
+  taskDate: {
+    fontFamily: 'Fredoka',
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  statusBadge: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
     borderRadius: 100,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginTop: 4,
   },
   pendingBadge: {
     backgroundColor: colors.pendingBackground,
@@ -405,13 +606,29 @@ const styles = StyleSheet.create({
   completedBadge: {
     backgroundColor: colors.completedBackground,
   },
-  badgeText: {
+  statusText: {
     fontFamily: 'FredokaMedium',
-    fontSize: 12,
+    fontSize: 13,
+  },
+  pendingStatusText: {
     color: colors.text,
   },
-  completedText: {
+  completedStatusText: {
     color: colors.completedText,
+  },
+  deleteButton: {
+    minHeight: 48,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.overdueBackground,
+    backgroundColor: colors.overdueBackground,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteButtonText: {
+    fontFamily: 'FredokaMedium',
+    fontSize: 14,
+    color: colors.overdueText,
   },
   addButton: {
     minHeight: 52,
@@ -440,11 +657,12 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    backgroundColor: 'rgba(32, 38, 56, 0.45)',
     justifyContent: 'center',
     padding: 20,
   },
   modalContent: {
+    maxHeight: '90%',
     backgroundColor: colors.backgroundElement,
     borderRadius: 18,
     padding: 24,
@@ -459,14 +677,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     marginTop: 4,
-    marginBottom: 12,
+    marginBottom: 20,
   },
-  label: {
+  inputLabel: {
     fontFamily: 'FredokaMedium',
     fontSize: 14,
     color: colors.text,
+    marginBottom: 6,
     marginTop: 12,
-    marginBottom: 7,
   },
   input: {
     minHeight: 50,
@@ -474,12 +692,17 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 14,
-    backgroundColor: colors.background,
     fontFamily: 'Fredoka',
-    fontSize: 14,
+    fontSize: 15,
     color: colors.text,
+    backgroundColor: colors.background,
   },
-  primaryButton: {
+  detailsInput: {
+    minHeight: 90,
+    textAlignVertical: 'top',
+    paddingTop: 12,
+  },
+  saveButton: {
     minHeight: 52,
     backgroundColor: colors.primary,
     borderRadius: 12,
@@ -487,7 +710,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 24,
   },
-  primaryButtonText: {
+  saveButtonText: {
     fontFamily: 'FredokaMedium',
     fontSize: 16,
     color: '#FFFFFF',
@@ -496,7 +719,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 6,
+    marginTop: 8,
   },
   cancelButtonText: {
     fontFamily: 'FredokaMedium',
