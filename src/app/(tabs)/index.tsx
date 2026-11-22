@@ -1,10 +1,38 @@
+import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 
 import { Colors } from '@/constants/theme';
+import { loadData, StorageKeys } from '@/storage/appStorage';
 
 const colors = Colors.light;
+
+type Task = {
+  id: string;
+  title: string;
+  subject: string;
+  details: string;
+  dueDate: string;
+  dueTime: string;
+  completed: boolean;
+};
+
+type EventStatus = 'Próxima' | 'Pendiente' | 'Completada';
+
+type CalendarEvent = {
+  id: string;
+  title: string;
+  subject: string;
+  time: string;
+  status: EventStatus;
+};
+
+type CalendarEvents = Record<number, CalendarEvent[]>;
+
+type HomeEvent = CalendarEvent & {
+  day: number;
+};
 
 function StatusBadge({
   label,
@@ -51,16 +79,24 @@ function EventCard({
   subject,
   details,
   status,
-  background,
-  statusColor,
 }: {
   title: string;
   subject: string;
   details: string;
-  status: string;
-  background: string;
-  statusColor?: string;
+  status: EventStatus;
 }) {
+  const badgeBackground =
+    status === 'Próxima'
+      ? colors.upcomingBackground
+      : status === 'Completada'
+        ? colors.completedBackground
+        : colors.pendingBackground;
+
+  const badgeColor =
+    status === 'Completada'
+      ? colors.completedText
+      : colors.text;
+
   return (
     <View style={styles.eventCard}>
       <View style={styles.eventContent}>
@@ -71,8 +107,8 @@ function EventCard({
 
       <StatusBadge
         label={status}
-        background={background}
-        color={statusColor}
+        background={badgeBackground}
+        color={badgeColor}
       />
     </View>
   );
@@ -80,6 +116,51 @@ function EventCard({
 
 export default function HomeScreen() {
   const router = useRouter();
+
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvents>({});
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+
+      async function loadHomeData() {
+        const [storedTasks, storedEvents] = await Promise.all([
+          loadData<Task[]>(StorageKeys.tasks, []),
+          loadData<CalendarEvents>(StorageKeys.calendarEvents, {}),
+        ]);
+
+        if (active) {
+          setTasks(storedTasks);
+          setCalendarEvents(storedEvents);
+        }
+      }
+
+      loadHomeData();
+
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
+
+  const pendingTasks = tasks.filter((task) => !task.completed).length;
+
+  const upcomingEvents: HomeEvent[] = Object.entries(calendarEvents)
+    .flatMap(([day, events]) =>
+      (events || []).map((event) => ({
+        ...event,
+        day: Number(day),
+      }))
+    )
+    .filter((event) => event.status !== 'Completada' && event.day >= 22)
+    .sort((a, b) => a.day - b.day || a.time.localeCompare(b.time));
+
+  const upcomingEvaluations = upcomingEvents.filter((event) =>
+    event.subject.toLowerCase().includes('evaluación')
+  ).length;
+
+  const displayedEvents = upcomingEvents.slice(0, 3);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -119,7 +200,7 @@ export default function HomeScreen() {
 
           <View style={styles.summaryNumbers}>
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryNumber}>3</Text>
+              <Text style={styles.summaryNumber}>{pendingTasks}</Text>
               <Text style={styles.summaryLabel}>
                 Tareas pendientes
               </Text>
@@ -128,7 +209,9 @@ export default function HomeScreen() {
             <View style={styles.summaryDivider} />
 
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryNumber}>2</Text>
+              <Text style={styles.summaryNumber}>
+                {upcomingEvaluations}
+              </Text>
               <Text style={styles.summaryLabel}>
                 Evaluaciones próximas
               </Text>
@@ -160,21 +243,23 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>Próximos eventos</Text>
 
           <View style={styles.eventsList}>
-            <EventCard
-              title="Informe de Biología"
-              subject="Biología · Entrega"
-              details="24 nov · 10:00"
-              status="Próxima"
-              background={colors.upcomingBackground}
-            />
-
-            <EventCard
-              title="Prueba de Matemáticas"
-              subject="Matemáticas · Evaluación"
-              details="26 nov · 08:30"
-              status="Pendiente"
-              background={colors.pendingBackground}
-            />
+            {displayedEvents.length > 0 ? (
+              displayedEvents.map((event) => (
+                <EventCard
+                  key={event.id}
+                  title={event.title}
+                  subject={event.subject}
+                  details={`${event.day} nov · ${event.time}`}
+                  status={event.status}
+                />
+              ))
+            ) : (
+              <View style={styles.emptyCard}>
+                <Text style={styles.emptyText}>
+                  No tienes eventos próximos.
+                </Text>
+              </View>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -339,6 +424,18 @@ const styles = StyleSheet.create({
   badgeText: {
     fontFamily: 'FredokaMedium',
     fontSize: 12,
+  },
+  emptyCard: {
+    backgroundColor: colors.backgroundElement,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 14,
+    padding: 18,
+  },
+  emptyText: {
+    fontFamily: 'Fredoka',
+    fontSize: 14,
+    color: colors.textSecondary,
   },
   pressed: {
     opacity: 0.7,

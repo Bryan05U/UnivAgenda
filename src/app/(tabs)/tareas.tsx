@@ -193,10 +193,12 @@ export default function TasksScreen() {
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
           <View style={styles.headerContent}>
-            <Text style={styles.title}>Mis tareas</Text>
-            <Text style={styles.subtitle}>
-              Organiza y lleva el seguimiento de tus actividades.
-            </Text>
+            <View style={styles.pageHeader}>
+              <Text style={styles.title}>Mis tareas</Text>
+              <Text style={styles.subtitle}>
+                Organiza y lleva el seguimiento de tus actividades.
+              </Text>
+            </View>
 
             <View style={styles.summary}>
               <View style={styles.summaryCard}>
@@ -449,6 +451,9 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     gap: 14,
+  },
+  pageHeader: {
+    gap: 6,
   },
   title: {
     fontFamily: 'FredokaSemiBold',

@@ -227,10 +227,12 @@ export default function CalendarScreen() {
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>Mi calendario</Text>
-        <Text style={styles.subtitle}>
-          Organiza tus actividades y evaluaciones.
-        </Text>
+        <View style={styles.pageHeader}>
+          <Text style={styles.title}>Mi calendario</Text>
+          <Text style={styles.subtitle}>
+            Organiza tus actividades y evaluaciones.
+          </Text>
+        </View>
 
         <View style={styles.monthHeader}>
           <View>
@@ -532,8 +534,11 @@ const styles = StyleSheet.create({
     paddingBottom: 36,
     gap: 16,
   },
+  pageHeader: {
+    gap: 6,
+  },
   title: {
-    fontFamily: 'FredokaSemiBold',
+    fontFamily: 'FredokaBold',
     fontSize: 24,
     color: colors.text,
   },
