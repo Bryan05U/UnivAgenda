@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import {
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -14,6 +15,24 @@ const colors = Colors.light;
 
 export default function ProfileScreen() {
   const router = useRouter();
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Cerrar sesión',
+      '¿Estás seguro de que deseas cerrar tu sesión?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Cerrar sesión',
+          style: 'destructive',
+          onPress: () => router.replace('/login'),
+        },
+      ]
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -81,6 +100,15 @@ export default function ProfileScreen() {
             <Text style={styles.arrow}>›</Text>
           </Pressable>
         </View>
+
+        <Pressable
+          style={styles.logoutButton}
+          onPress={handleLogout}
+          accessibilityRole="button"
+          accessibilityLabel="Cerrar sesión"
+        >
+          <Text style={styles.logoutButtonText}>Cerrar sesión</Text>
+        </Pressable>
 
         <Text style={styles.version}>UnivAgenda · Versión 1.0</Text>
       </ScrollView>
@@ -202,11 +230,25 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: colors.textSecondary,
   },
+  logoutButton: {
+    minHeight: 52,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.overdueText,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  logoutButtonText: {
+    fontFamily: 'FredokaMedium',
+    fontSize: 16,
+    color: colors.overdueText,
+  },
   version: {
     fontFamily: 'Fredoka',
     fontSize: 12,
     color: colors.textSecondary,
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: 20,
   },
 });

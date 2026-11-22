@@ -46,13 +46,22 @@ export default function RegisterScreen() {
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Las contraseñas no coinciden', 'Verifica ambas contraseñas.');
+      Alert.alert(
+        'Las contraseñas no coinciden',
+        'Verifica ambas contraseñas.'
+      );
       return;
     }
 
     Alert.alert(
-      'Registro',
-      'El registro estará disponible cuando conectemos el sistema de usuarios.'
+      '¡Registro completado!',
+      'La validación de demostración fue exitosa. Ahora puedes iniciar sesión.',
+      [
+        {
+          text: 'Continuar',
+          onPress: () => router.replace('/login'),
+        },
+      ]
     );
   };
 

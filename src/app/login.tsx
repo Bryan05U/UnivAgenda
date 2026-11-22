@@ -30,10 +30,7 @@ export default function LoginScreen() {
       return;
     }
 
-    Alert.alert(
-      'Inicio de sesión',
-      'La autenticación estará disponible cuando conectemos el sistema de usuarios.'
-    );
+    router.replace('/(tabs)');
   };
 
   return (
