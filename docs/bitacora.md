@@ -82,6 +82,8 @@ Pruebas realizadas:
 
 **Observación:** Expo Doctor presentó un error de conexión (`ECONNRESET`) al intentar consultar la API de Expo. Por ello, esa comprobación quedó pendiente y no se considera una validación exitosa.
 
+**Resultado de Expo Doctor:** Se ejecutó `npx expo-doctor` y se obtuvieron **20/20 verificaciones aprobadas**, sin problemas detectados en la configuración ni en las dependencias del proyecto.
+
 ## 8. Uso responsable de IA
 
 Durante el proyecto se consideraron los siguientes criterios:

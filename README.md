@@ -1,56 +1,110 @@
-# Welcome to your Expo app 👋
+# UnivAgenda
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**Aplicación móvil de organización universitaria**
 
-## Get started
+UnivAgenda es una aplicación móvil desarrollada para ayudar a estudiantes universitarios a organizar sus actividades académicas, administrar sus tareas, consultar un calendario y mantener ordenadas sus asignaturas.
 
-1. Install dependencies
+## Características principales
 
-   ```bash
-   npm install
-   ```
+- **Inicio:** resumen de la actividad académica.
+- **Tareas:** registro, consulta, seguimiento y eliminación de tareas.
+- **Calendario:** organización de eventos y fechas importantes.
+- **Asignaturas:** registro, búsqueda, edición y eliminación de asignaturas, con información de días y horarios.
+- **Login y Registro:** pantallas de acceso y registro de demostración.
+- **Perfil:** sección de información y opciones de usuario.
+- **Almacenamiento local:** conservación de información mediante AsyncStorage.
 
-2. Start the app
+> La autenticación de Login y Registro corresponde a una implementación de demostración; no utiliza actualmente un servicio de autenticación externo.
 
-   ```bash
-   npx expo start
-   ```
+## Tecnologías utilizadas
 
-In the output, you'll find options to open the app in a
+- React Native
+- Expo SDK 58
+- Expo Router
+- TypeScript
+- AsyncStorage
+- Expo Go
+- Figma
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Diseño e identidad visual
 
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+El diseño de UnivAgenda se desarrolló considerando una identidad visual propia, con una paleta de colores basada principalmente en tonos azules y fondos claros.
 
-## Get a fresh project
+La tipografía utilizada es Fredoka y el logotipo corresponde al diseño original del proyecto.
 
-When you're ready, run:
+**Diseño en Figma:**
+
+https://www.figma.com/design/Izjp1hq621p5XGNyg5on8z/UnivAgenda---Avance-1?node-id=0-1&t=CHXfo2ELGOPaYYC3-1
+
+**Logotipos en Canva:**
+
+https://canva.link/8xuoyvbya5c870f
+
+## Requisitos
+
+- Node.js
+- npm
+- Expo Go en un dispositivo móvil, o un entorno compatible para ejecutar la aplicación.
+
+## Instalación
+
+Clonar el repositorio:
 
 ```bash
-npm run reset-project
+git clone https://github.com/Bryan05U/UnivAgenda
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+Entrar en la carpeta del proyecto:
 
-### Other setup steps
+```bash
+cd UnivAgenda
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+Instalar las dependencias:
 
-## Learn more
+```bash
+npm install
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+## Ejecución
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Iniciar el servidor de desarrollo:
 
-## Join the community
+```bash
+npx expo start
+```
 
-Join our community of developers creating universal apps.
+Para ejecutar en web:
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+npx expo start --web
+```
+
+También se puede escanear el código QR desde Expo Go para probar la aplicación en un dispositivo móvil.
+
+## Validaciones
+
+Durante el desarrollo se realizaron pruebas funcionales de navegación, formularios, gestión de tareas, calendario, asignaturas y almacenamiento local.
+
+Se ejecutaron las siguientes comprobaciones:
+
+- `npx tsc --noEmit`
+- `npx expo install --check`
+- `npx expo-doctor`
+
+**Resultado de Expo Doctor: 20/20 verificaciones aprobadas.**
+
+## Uso de inteligencia artificial
+
+ChatGPT se utilizó como herramienta de apoyo para resolver dudas técnicas, revisar código, corregir errores y mejorar la experiencia de usuario.
+
+Las propuestas fueron revisadas y probadas antes de incorporarse al proyecto.
+
+El detalle del proceso se encuentra en:
+
+`docs/bitacora.md`
+
+## Autoría
+
+Proyecto académico desarrollado como aplicación móvil de organización universitaria.
+
