@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import {
+  Alert,
+  Modal,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
-  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -12,7 +15,12 @@ import { Colors } from '@/constants/theme';
 
 const colors = Colors.light;
 
-const days = Array.from({ length: 30 }, (_, index) => index + 1);
+const firstDayOffset = 6;
+
+const days = [
+  ...Array(firstDayOffset).fill(null),
+  ...Array.from({ length: 30 }, (_, index) => index + 1),
+];
 
 type Event = {
   id: string;
@@ -22,7 +30,7 @@ type Event = {
   status: 'Próxima' | 'Pendiente';
 };
 
-const events: Record<number, Event[]> = {
+const initialEvents: Record<number, Event[]> = {
   24: [
     {
       id: '1',
@@ -68,18 +76,69 @@ const events: Record<number, Event[]> = {
   ],
 };
 
-const eventDays = [24, 25, 26, 27];
-
 export default function CalendarScreen() {
   const [selectedDay, setSelectedDay] = useState(24);
 
-  const selectedEvents = events[selectedDay] ?? [];
+  const [calendarEvents, setCalendarEvents] = useState(initialEvents);
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const [newTitle, setNewTitle] = useState('');
+  const [newSubject, setNewSubject] = useState('');
+  const [newTime, setNewTime] = useState('');
+  const [newStatus, setNewStatus] =
+    useState<'Próxima' | 'Pendiente'>('Pendiente');
+
+  const selectedEvents = calendarEvents[selectedDay] ?? [];
+
+  const eventDays = Object.keys(calendarEvents)
+    .filter((day) => calendarEvents[Number(day)].length > 0)
+    .map(Number);
+
+  function openModal() {
+    setNewTitle('');
+    setNewSubject('');
+    setNewTime('');
+    setNewStatus('Pendiente');
+    setModalVisible(true);
+  }
+
+  function addEvent() {
+    if (!newTitle.trim() || !newSubject.trim() || !newTime.trim()) {
+      Alert.alert('Campos incompletos', 'Completa todos los campos.');
+      return;
+    }
+
+    const newEvent: Event = {
+      id: Date.now().toString(),
+      title: newTitle.trim(),
+      subject: `Actividad · ${newSubject.trim()}`,
+      time: newTime.trim(),
+      status: newStatus,
+    };
+
+    setCalendarEvents((current) => ({
+      ...current,
+      [selectedDay]: [...(current[selectedDay] ?? []), newEvent],
+    }));
+
+    setNewTitle('');
+    setNewSubject('');
+    setNewTime('');
+    setNewStatus('Pendiente');
+    setModalVisible(false);
+
+    Alert.alert(
+      '¡Actividad agregada!',
+      `Se agregó al ${selectedDay} de noviembre.`,
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
           <Text style={styles.title}>Mi calendario</Text>
@@ -102,7 +161,16 @@ export default function CalendarScreen() {
           </View>
 
           <View style={styles.daysGrid}>
-            {days.map((day) => {
+            {days.map((day, index) => {
+              if (day === null) {
+                return (
+                  <View
+                    key={`empty-${index}`}
+                    style={styles.dayCell}
+                  />
+                );
+              }
+
               const isSelected = selectedDay === day;
               const hasEvent = eventDays.includes(day);
 
@@ -150,7 +218,9 @@ export default function CalendarScreen() {
             selectedEvents.map((event) => (
               <View key={event.id} style={styles.eventCard}>
                 <View style={styles.eventContent}>
-                  <Text style={styles.eventTitle}>{event.title}</Text>
+                  <Text style={styles.eventTitle}>
+                    {event.title}
+                  </Text>
                   <Text style={styles.eventMetadata}>
                     {event.subject}
                   </Text>
@@ -187,11 +257,117 @@ export default function CalendarScreen() {
             styles.addButton,
             pressed && styles.pressed,
           ]}
-          onPress={() => alert('Próximamente: agregar actividad')}
+          onPress={openModal}
+          accessibilityRole="button"
         >
-          <Text style={styles.addButtonText}>+ Agregar actividad</Text>
+          <Text style={styles.addButtonText}>
+            + Agregar actividad
+          </Text>
         </Pressable>
       </ScrollView>
+
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>
+              Nueva actividad
+            </Text>
+            <Text style={styles.modalSubtitle}>
+              {selectedDay} de noviembre de 2026
+            </Text>
+
+            <Text style={styles.label}>
+              Nombre de la actividad
+            </Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ej. Prueba de química"
+              placeholderTextColor={colors.textSecondary}
+              value={newTitle}
+              onChangeText={setNewTitle}
+              accessibilityLabel="Nombre de la actividad"
+            />
+
+            <Text style={styles.label}>Asignatura</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ej. Química"
+              placeholderTextColor={colors.textSecondary}
+              value={newSubject}
+              onChangeText={setNewSubject}
+              accessibilityLabel="Asignatura"
+            />
+
+            <Text style={styles.label}>Hora</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ej. 14:30"
+              placeholderTextColor={colors.textSecondary}
+              value={newTime}
+              onChangeText={setNewTime}
+              keyboardType="numbers-and-punctuation"
+              accessibilityLabel="Hora de la actividad"
+            />
+
+            <Text style={styles.label}>Estado</Text>
+
+            <View style={styles.statusOptions}>
+              {(['Próxima', 'Pendiente'] as const).map(
+                (status) => (
+                  <Pressable
+                    key={status}
+                    onPress={() => setNewStatus(status)}
+                    style={[
+                      styles.statusButton,
+                      newStatus === status &&
+                        styles.statusButtonActive,
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityState={{
+                      selected: newStatus === status,
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.statusButtonText,
+                        newStatus === status &&
+                          styles.statusButtonTextActive,
+                      ]}
+                    >
+                      {status}
+                    </Text>
+                  </Pressable>
+                ),
+              )}
+            </View>
+
+            <Pressable
+              style={styles.primaryButton}
+              onPress={addEvent}
+              accessibilityRole="button"
+            >
+              <Text style={styles.primaryButtonText}>
+                Guardar actividad
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.cancelButton}
+              onPress={() => setModalVisible(false)}
+              accessibilityRole="button"
+            >
+              <Text style={styles.cancelButtonText}>
+                Cancelar
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -354,5 +530,94 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.7,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: colors.backgroundElement,
+    borderRadius: 18,
+    padding: 24,
+  },
+  modalTitle: {
+    fontFamily: 'FredokaSemiBold',
+    fontSize: 22,
+    color: colors.text,
+  },
+  modalSubtitle: {
+    fontFamily: 'Fredoka',
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  label: {
+    fontFamily: 'FredokaMedium',
+    fontSize: 14,
+    color: colors.text,
+    marginTop: 14,
+    marginBottom: 7,
+  },
+  input: {
+    minHeight: 50,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    backgroundColor: colors.background,
+    fontFamily: 'Fredoka',
+    fontSize: 14,
+    color: colors.text,
+  },
+  statusOptions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  statusButton: {
+    flex: 1,
+    minHeight: 48,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusButtonActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  statusButtonText: {
+    fontFamily: 'FredokaMedium',
+    fontSize: 14,
+    color: colors.text,
+  },
+  statusButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  primaryButton: {
+    minHeight: 52,
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 24,
+  },
+  primaryButtonText: {
+    fontFamily: 'FredokaMedium',
+    fontSize: 16,
+    color: '#FFFFFF',
+  },
+  cancelButton: {
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 6,
+  },
+  cancelButtonText: {
+    fontFamily: 'FredokaMedium',
+    fontSize: 15,
+    color: colors.textSecondary,
   },
 });
