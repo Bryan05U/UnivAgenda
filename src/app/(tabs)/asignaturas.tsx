@@ -28,7 +28,8 @@ type Subject = {
   name: string;
   code: string;
   teacher: string;
-  schedule: string;
+  day: string;
+  time: string;
   room: string;
 };
 
@@ -38,7 +39,8 @@ const initialSubjects: Subject[] = [
     name: 'Matemáticas',
     code: 'MAT101',
     teacher: 'Docente de Matemáticas',
-    schedule: 'Lunes · 08:30',
+    day: 'Lunes',
+    time: '08:30',
     room: 'Sala 201',
   },
   {
@@ -46,7 +48,8 @@ const initialSubjects: Subject[] = [
     name: 'Biología',
     code: 'BIO102',
     teacher: 'Docente de Biología',
-    schedule: 'Martes · 10:00',
+    day: 'Martes',
+    time: '10:00',
     room: 'Laboratorio 1',
   },
   {
@@ -54,10 +57,26 @@ const initialSubjects: Subject[] = [
     name: 'Historia',
     code: 'HIS103',
     teacher: 'Docente de Historia',
-    schedule: 'Miércoles · 12:00',
+    day: 'Miércoles',
+    time: '12:00',
     room: 'Sala 105',
   },
 ];
+
+function normalizeSubject(subject: any): Subject {
+  const legacySchedule = String(subject.schedule ?? '');
+  const scheduleParts = legacySchedule.split('·');
+
+  return {
+    id: String(subject.id),
+    name: subject.name ?? '',
+    code: subject.code ?? '',
+    teacher: subject.teacher ?? '',
+    day: subject.day ?? scheduleParts[0]?.trim() ?? 'Por definir',
+    time: subject.time ?? scheduleParts[1]?.trim() ?? 'Por definir',
+    room: subject.room ?? '',
+  };
+}
 
 export default function AsignaturasScreen() {
   const [subjects, setSubjects] = useState<Subject[]>(initialSubjects);
@@ -70,18 +89,24 @@ export default function AsignaturasScreen() {
   const [newName, setNewName] = useState('');
   const [newCode, setNewCode] = useState('');
   const [newTeacher, setNewTeacher] = useState('');
-  const [newSchedule, setNewSchedule] = useState('');
+  const [newDay, setNewDay] = useState('');
+  const [newTime, setNewTime] = useState('');
   const [newRoom, setNewRoom] = useState('');
 
   useEffect(() => {
     async function loadSubjects() {
-      const savedSubjects = await loadData<Subject[]>(
-        StorageKeys.subjects,
-        initialSubjects
-      );
+      try {
+        const savedSubjects = await loadData<any[]>(
+          StorageKeys.subjects,
+          initialSubjects
+        );
 
-      setSubjects(savedSubjects);
-      setLoaded(true);
+        setSubjects(savedSubjects.map(normalizeSubject));
+      } catch {
+        setSubjects(initialSubjects);
+      } finally {
+        setLoaded(true);
+      }
     }
 
     loadSubjects();
@@ -107,7 +132,8 @@ export default function AsignaturasScreen() {
     setNewName('');
     setNewCode('');
     setNewTeacher('');
-    setNewSchedule('');
+    setNewDay('');
+    setNewTime('');
     setNewRoom('');
     setEditingId(null);
   }
@@ -122,7 +148,8 @@ export default function AsignaturasScreen() {
     setNewName(subject.name);
     setNewCode(subject.code);
     setNewTeacher(subject.teacher);
-    setNewSchedule(subject.schedule);
+    setNewDay(subject.day);
+    setNewTime(subject.time);
     setNewRoom(subject.room);
     setModalVisible(true);
   }
@@ -132,12 +159,23 @@ export default function AsignaturasScreen() {
       !newName.trim() ||
       !newCode.trim() ||
       !newTeacher.trim() ||
-      !newSchedule.trim() ||
+      !newDay.trim() ||
+      !newTime.trim() ||
       !newRoom.trim()
     ) {
       Alert.alert(
         'Campos incompletos',
         'Completa todos los campos para guardar la asignatura.'
+      );
+      return;
+    }
+
+    const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+    if (!timePattern.test(newTime.trim())) {
+      Alert.alert(
+        'Hora no válida',
+        'Escribe la hora en formato de 24 horas. Por ejemplo: 08:30 o 14:00.'
       );
       return;
     }
@@ -149,9 +187,10 @@ export default function AsignaturasScreen() {
             ? {
                 ...subject,
                 name: newName.trim(),
-                code: newCode.trim(),
+                code: newCode.trim().toUpperCase(),
                 teacher: newTeacher.trim(),
-                schedule: newSchedule.trim(),
+                day: newDay.trim(),
+                time: newTime.trim(),
                 room: newRoom.trim(),
               }
             : subject
@@ -161,9 +200,10 @@ export default function AsignaturasScreen() {
       const newSubject: Subject = {
         id: Date.now().toString(),
         name: newName.trim(),
-        code: newCode.trim(),
+        code: newCode.trim().toUpperCase(),
         teacher: newTeacher.trim(),
-        schedule: newSchedule.trim(),
+        day: newDay.trim(),
+        time: newTime.trim(),
         room: newRoom.trim(),
       };
 
@@ -219,9 +259,19 @@ export default function AsignaturasScreen() {
           <Text style={styles.detailText}>
             Docente: {item.teacher}
           </Text>
-          <Text style={styles.detailText}>
-            Horario: {item.schedule}
-          </Text>
+
+          <View style={styles.scheduleContainer}>
+            <View style={styles.scheduleItem}>
+              <Text style={styles.scheduleLabel}>DÍA</Text>
+              <Text style={styles.scheduleValue}>{item.day}</Text>
+            </View>
+
+            <View style={styles.scheduleItem}>
+              <Text style={styles.scheduleLabel}>HORA</Text>
+              <Text style={styles.scheduleValue}>{item.time}</Text>
+            </View>
+          </View>
+
           <Text style={styles.detailText}>
             Sala: {item.room}
           </Text>
@@ -354,13 +404,24 @@ export default function AsignaturasScreen() {
                   onChangeText={setNewTeacher}
                 />
 
-                <Text style={styles.inputLabel}>Horario</Text>
+                <Text style={styles.inputLabel}>Día de la semana</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Ej. Jueves · 09:00"
+                  placeholder="Ej. Jueves"
                   placeholderTextColor={colors.textSecondary}
-                  value={newSchedule}
-                  onChangeText={setNewSchedule}
+                  value={newDay}
+                  onChangeText={setNewDay}
+                />
+
+                <Text style={styles.inputLabel}>Hora de inicio</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ej. 09:30"
+                  placeholderTextColor={colors.textSecondary}
+                  value={newTime}
+                  onChangeText={setNewTime}
+                  keyboardType="numbers-and-punctuation"
+                  maxLength={5}
                 />
 
                 <Text style={styles.inputLabel}>Sala</Text>
@@ -495,12 +556,33 @@ const styles = StyleSheet.create({
   },
   subjectDetails: {
     marginTop: 14,
-    gap: 6,
+    gap: 10,
   },
   detailText: {
     fontFamily: 'Fredoka',
     fontSize: 14,
     color: colors.textSecondary,
+  },
+  scheduleContainer: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  scheduleItem: {
+    flex: 1,
+    backgroundColor: colors.backgroundSelected,
+    borderRadius: 10,
+    padding: 10,
+  },
+  scheduleLabel: {
+    fontFamily: 'FredokaMedium',
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginBottom: 3,
+  },
+  scheduleValue: {
+    fontFamily: 'FredokaSemiBold',
+    fontSize: 15,
+    color: colors.primary,
   },
   actionsContainer: {
     flexDirection: 'row',
