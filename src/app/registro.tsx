@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
+import { Image } from 'expo-image';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -85,8 +86,16 @@ export default function RegisterScreen() {
           </Pressable>
 
           <View style={styles.header}>
+            <Image
+              source={require('@/assets/branding/logo-app.png')}
+              style={styles.appLogo}
+              contentFit="contain"
+            />
+
             <Text style={styles.logo}>UnivAgenda</Text>
+
             <Text style={styles.title}>Crear cuenta</Text>
+
             <Text style={styles.subtitle}>
               Organiza tu vida universitaria desde hoy.
             </Text>
@@ -202,6 +211,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 12,
     marginBottom: 28,
+  },
+  appLogo: {
+    width: 56,
+    height: 56,
+    marginBottom: 6,
   },
   logo: {
     fontFamily: 'FredokaBold',

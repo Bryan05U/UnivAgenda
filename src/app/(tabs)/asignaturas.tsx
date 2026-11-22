@@ -65,6 +65,7 @@ export default function AsignaturasScreen() {
 
   const [search, setSearch] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [newName, setNewName] = useState('');
   const [newCode, setNewCode] = useState('');
@@ -108,9 +109,25 @@ export default function AsignaturasScreen() {
     setNewTeacher('');
     setNewSchedule('');
     setNewRoom('');
+    setEditingId(null);
   }
 
-  function addSubject() {
+  function openNewSubject() {
+    resetForm();
+    setModalVisible(true);
+  }
+
+  function openEditSubject(subject: Subject) {
+    setEditingId(subject.id);
+    setNewName(subject.name);
+    setNewCode(subject.code);
+    setNewTeacher(subject.teacher);
+    setNewSchedule(subject.schedule);
+    setNewRoom(subject.room);
+    setModalVisible(true);
+  }
+
+  function saveSubject() {
     if (
       !newName.trim() ||
       !newCode.trim() ||
@@ -120,21 +137,44 @@ export default function AsignaturasScreen() {
     ) {
       Alert.alert(
         'Campos incompletos',
-        'Completa todos los campos para agregar la asignatura.'
+        'Completa todos los campos para guardar la asignatura.'
       );
       return;
     }
 
-    const newSubject: Subject = {
-      id: Date.now().toString(),
-      name: newName.trim(),
-      code: newCode.trim(),
-      teacher: newTeacher.trim(),
-      schedule: newSchedule.trim(),
-      room: newRoom.trim(),
-    };
+    if (editingId) {
+      setSubjects((current) =>
+        current.map((subject) =>
+          subject.id === editingId
+            ? {
+                ...subject,
+                name: newName.trim(),
+                code: newCode.trim(),
+                teacher: newTeacher.trim(),
+                schedule: newSchedule.trim(),
+                room: newRoom.trim(),
+              }
+            : subject
+        )
+      );
+    } else {
+      const newSubject: Subject = {
+        id: Date.now().toString(),
+        name: newName.trim(),
+        code: newCode.trim(),
+        teacher: newTeacher.trim(),
+        schedule: newSchedule.trim(),
+        room: newRoom.trim(),
+      };
 
-    setSubjects((current) => [...current, newSubject]);
+      setSubjects((current) => [...current, newSubject]);
+    }
+
+    resetForm();
+    setModalVisible(false);
+  }
+
+  function closeModal() {
     resetForm();
     setModalVisible(false);
   }
@@ -187,14 +227,25 @@ export default function AsignaturasScreen() {
           </Text>
         </View>
 
-        <Pressable
-          style={styles.deleteButton}
-          onPress={() => deleteSubject(item)}
-          accessibilityRole="button"
-          accessibilityLabel={`Eliminar ${item.name}`}
-        >
-          <Text style={styles.deleteButtonText}>Eliminar asignatura</Text>
-        </Pressable>
+        <View style={styles.actionsContainer}>
+          <Pressable
+            style={styles.editButton}
+            onPress={() => openEditSubject(item)}
+            accessibilityRole="button"
+            accessibilityLabel={`Editar ${item.name}`}
+          >
+            <Text style={styles.editButtonText}>Editar</Text>
+          </Pressable>
+
+          <Pressable
+            style={styles.deleteButton}
+            onPress={() => deleteSubject(item)}
+            accessibilityRole="button"
+            accessibilityLabel={`Eliminar ${item.name}`}
+          >
+            <Text style={styles.deleteButtonText}>Eliminar</Text>
+          </Pressable>
+        </View>
       </View>
     );
   }
@@ -220,7 +271,8 @@ export default function AsignaturasScreen() {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Mis asignaturas</Text>
           <Text style={styles.countText}>
-            {subjects.length} {subjects.length === 1 ? 'asignatura' : 'asignaturas'}
+            {subjects.length}{' '}
+            {subjects.length === 1 ? 'asignatura' : 'asignaturas'}
           </Text>
         </View>
 
@@ -243,7 +295,8 @@ export default function AsignaturasScreen() {
 
         <Pressable
           style={styles.addButton}
-          onPress={() => setModalVisible(true)}
+          onPress={openNewSubject}
+          accessibilityRole="button"
         >
           <Text style={styles.addButtonText}>+ Agregar asignatura</Text>
         </Pressable>
@@ -252,7 +305,7 @@ export default function AsignaturasScreen() {
           visible={modalVisible}
           animationType="slide"
           transparent
-          onRequestClose={() => setModalVisible(false)}
+          onRequestClose={closeModal}
         >
           <KeyboardAvoidingView
             style={styles.modalOverlay}
@@ -264,10 +317,13 @@ export default function AsignaturasScreen() {
                 keyboardShouldPersistTaps="handled"
               >
                 <Text style={styles.modalTitle}>
-                  Nueva asignatura
+                  {editingId ? 'Editar asignatura' : 'Nueva asignatura'}
                 </Text>
+
                 <Text style={styles.modalSubtitle}>
-                  Completa la información del curso.
+                  {editingId
+                    ? 'Modifica la información del curso.'
+                    : 'Completa la información del curso.'}
                 </Text>
 
                 <Text style={styles.inputLabel}>Nombre</Text>
@@ -318,23 +374,20 @@ export default function AsignaturasScreen() {
 
                 <Pressable
                   style={styles.saveButton}
-                  onPress={addSubject}
+                  onPress={saveSubject}
+                  accessibilityRole="button"
                 >
                   <Text style={styles.saveButtonText}>
-                    Guardar asignatura
+                    {editingId ? 'Guardar cambios' : 'Guardar asignatura'}
                   </Text>
                 </Pressable>
 
                 <Pressable
                   style={styles.cancelButton}
-                  onPress={() => {
-                    resetForm();
-                    setModalVisible(false);
-                  }}
+                  onPress={closeModal}
+                  accessibilityRole="button"
                 >
-                  <Text style={styles.cancelButtonText}>
-                    Cancelar
-                  </Text>
+                  <Text style={styles.cancelButtonText}>Cancelar</Text>
                 </Pressable>
               </ScrollView>
             </View>
@@ -449,13 +502,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
+  actionsContainer: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+  editButton: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 10,
+    backgroundColor: colors.backgroundSelected,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editButtonText: {
+    fontFamily: 'FredokaMedium',
+    fontSize: 14,
+    color: colors.primary,
+  },
   deleteButton: {
-    minHeight: 44,
+    flex: 1,
+    minHeight: 48,
     borderRadius: 10,
     backgroundColor: colors.overdueBackground,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 14,
   },
   deleteButtonText: {
     fontFamily: 'FredokaMedium',

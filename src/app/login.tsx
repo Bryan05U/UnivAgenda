@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
+import { Image } from 'expo-image';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -45,7 +46,14 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.logoContainer}>
+            <Image
+              source={require('@/assets/branding/logo-app.png')}
+              style={styles.appLogo}
+              contentFit="contain"
+            />
+
             <Text style={styles.logo}>UnivAgenda</Text>
+
             <Text style={styles.subtitle}>
               Organiza tu vida universitaria.
             </Text>
@@ -136,6 +144,11 @@ const styles = StyleSheet.create({
   logoContainer: {
     alignItems: 'center',
     marginBottom: 40,
+  },
+  appLogo: {
+    width: 64,
+    height: 64,
+    marginBottom: 8,
   },
   logo: {
     fontFamily: 'FredokaBold',
