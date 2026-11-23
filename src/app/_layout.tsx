@@ -1,8 +1,7 @@
-import { Stack } from 'expo-router';
-import { DefaultTheme, ThemeProvider } from 'expo-router';
+import { useFonts } from 'expo-font';
+import { DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useFonts } from 'expo-font';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 
@@ -22,11 +21,7 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={DefaultTheme}>
-      <StatusBar
-        style="light"
-        backgroundColor="#2F4B84"
-        translucent
-      />
+      <StatusBar style="light" />
 
       <Stack
         screenOptions={{
