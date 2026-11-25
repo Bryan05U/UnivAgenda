@@ -107,8 +107,8 @@ El detalle del proceso se encuentra en:
 
 ## 📑 8. Progreso
 
-- **Avance App Móvil 1:** 22 de noviembre (18:00 hrs) ⬅
-- **Avance App Móvil 2:** 7 de diciembre (14:15 hrs)
+- **Avance App Móvil 1:** 22 de noviembre (18:00 hrs) (TERMINADO)
+- **Avance App Móvil 2:** 7 de diciembre (14:15 hrs) ⬅
 - **Proyecto App Móvil:** 14 de diciembre (14:15 hrs)
 
 ## © 9. Autoría
